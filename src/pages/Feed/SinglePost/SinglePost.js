@@ -1,7 +1,11 @@
 import React, { Component } from "react";
+import { gql, GraphQLClient } from "graphql-request";
 
 import Image from "../../../components/Image/Image";
 import "./SinglePost.css";
+import { server } from "../../../util/consts";
+
+const endpoint = `${server}/graphql`;
 
 class SinglePost extends Component {
 	state = {
@@ -12,10 +16,15 @@ class SinglePost extends Component {
 		content: "",
 	};
 
+	graphQLClient = new GraphQLClient(endpoint, {
+		headers: {
+			Authorization: `Bearer ${this.props.token}`,
+		},
+	});
+
 	componentDidMount() {
 		const postId = this.props.match.params.postId;
-		const graphqlQuery = {
-			query: `
+		const query = gql`
 			query {
 				getPost(postId: ${postId}) {
 				_id
@@ -29,24 +38,11 @@ class SinglePost extends Component {
 	createdAt
 	updatedAt
 			}}
-			`,
-		};
-		fetch(`http://localhost:8080/graphql`, {
-			method: "POST",
-			body: JSON.stringify(graphqlQuery),
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${this.props.token}`,
-			},
-		})
-			.then((res) => {
-				if (res.status !== 200) {
-					throw new Error("Failed to fetch status");
-				}
-				return res.json();
-			})
+		`;
+		this.graphQLClient
+			.request(query)
 			.then((resData) => {
-				resData.post = resData.data.getPost;
+				resData.post = resData.getPost;
 				const server = "http://localhost:8080";
 				console.log(resData.post);
 				this.setState({
